@@ -1,0 +1,503 @@
+//////////////////////////////////////////////////////////////
+#include <stdint.h>
+#include <string.h>
+#include "Structures.h"
+#include "app_uart.h"
+#include "app_timer.h"
+#include "nrf_drv_timer.h"
+#include "bsp.h"
+#include "nrf_gpio.h"
+
+#include "UART.h"
+//-------------------------------------------------------------
+void uart_stop(void);
+void uart_start_tx_timer(void);
+void uart_stop_tx_timer(void);
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+APP_TIMER_DEF(uart_repair_timer_id);
+APP_TIMER_DEF(uart_waiting_timer_id);
+const nrf_drv_timer_t UART_TX_TIMER = NRF_DRV_TIMER_INSTANCE(1);
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+extern FLAGSmy_t _flags;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+statRxDT_t statRxDTbits;
+statTxDT_t statTxDTbits;
+uint8_t RCREG, TXREG;
+uint8_t uart_rx_buff[UART_BUFF_SIZE];
+uint8_t uart_tx_buff[UART_BUFF_SIZE];
+uint8_t idx = 0;
+							
+uint8_t countStartRx =0;
+uint8_t countStringRx =0;
+uint8_t countRxBuf =0;
+uint8_t countStartTx =0;
+uint8_t countStringTx =0;
+uint8_t countTxBuf =0;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uint8_t uart_data_len;
+uint8_t uart_crc_result = 0;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uart_error_list_t uart_error_type = UART_ERROR_NONE;
+packet_counter_t uart_packets;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+//-------------------------------------------------------------
+void uart_waiting_timer_start(void)
+{
+	app_timer_start(uart_waiting_timer_id, APP_TIMER_TICKS(UART_WAITING_ERROR), NULL);
+}
+//-------------------------------------------------------------
+void uart_waiting_timer_stop(void)
+{
+	app_timer_stop(uart_waiting_timer_id);
+}
+//-------------------------------------------------------------
+void uart_waiting_timer_restart(void)
+{
+	uart_waiting_timer_stop();
+	uart_waiting_timer_start();
+}
+//-------------------------------------------------------------
+void uart_repair_timer_start(void)
+{
+	app_timer_start(uart_repair_timer_id, APP_TIMER_TICKS(UART_REPAIR_ERROR), NULL);
+}
+//-------------------------------------------------------------
+void uart_repair_timer_stop(void)
+{
+	app_timer_stop(uart_repair_timer_id);
+}
+//-------------------------------------------------------------
+void uart_repair_timer_restart(void)
+{
+	uart_repair_timer_stop();
+	uart_repair_timer_start();
+}
+//-------------------------------------------------------------
+void* calc_crc(uint8_t* data, uint8_t len)
+{
+	uart_crc_result = *data;
+	
+	for (uint8_t i = 1; i < len; i++)
+	{
+		uart_crc_result = uart_crc_result ^ (*(data + i));
+	}
+	return &uart_crc_result;
+}
+//-------------------------------------------------------------
+void send_error(void)
+{
+	uint8_t buff[128];
+	
+	memset(buff, 0x00, sizeof(buff));
+	
+	buff[UART_ADDR_IDX] = *(uint8_t*)GetUART_addr();//DONGLE_START_BYTE;//
+	buff[DONGLE_LEN_IDX] = UART_ERROR_LEN;
+	buff[DONGLE_COMMAND_IDX] = *(uint8_t*)GetUART_com();
+	memset(&buff[DONGLE_DATA_IDX], 0xFF, 2);
+	buff[DONGLE_ERROR_IDX] = uart_error_type;
+	memcpy(&buff[DONGLE_XOR_IDX], calc_crc(buff, BLE_BUFF_LEN - 1), 1);	// подсчет crc пакета для ответа
+	//buff[DONGLE_XOR_IDX] = calc_crc(buff, BLE_BUFF_LEN - 1);		// подсчет crc пакета для ответа
+	
+	SetUART_TX(buff);												// перенос временного буфера в uart на отправку
+//	send_message();													// начать передачу по uart
+}
+//-------------------------------------------------------------
+void set_error(uart_error_list_t number)
+{
+	uart_error_type = number;
+	uart_packets.errors++;
+	send_error();
+}
+//-------------------------------------------------------------
+void uart_tx_buff_clear(void)
+{
+	memset(uart_tx_buff, 0x00, sizeof(uart_tx_buff));
+}
+//-------------------------------------------------------------
+uint8_t GetUART_data_len(void)
+{
+	return uart_data_len;
+}
+//-------------------------------------------------------------
+void* GetUART_xor(void)
+{
+	return &uart_rx_buff[0] + DONGLE_XOR_IDX;
+}
+//-------------------------------------------------------------
+void* GetUART_dat(void)
+{
+	return &uart_rx_buff[0] + DONGLE_DATA_IDX;
+}
+//-------------------------------------------------------------
+void* GetUART_com(void)
+{
+	return &uart_rx_buff[0] + DONGLE_COMMAND_IDX;
+}
+//-------------------------------------------------------------
+void* GetUART_len(void)
+{
+	return &uart_rx_buff[0] + DONGLE_LEN_IDX;
+}
+//-------------------------------------------------------------
+void* GetUART_addr(void)
+{
+	return &uart_rx_buff[0] + UART_ADDR_IDX;
+}
+//-------------------------------------------------------------
+void SetUART_TX(void* data)
+{
+	if (UART_TX_F) return;
+	uart_tx_buff_clear();
+	memcpy(uart_tx_buff, data, UART_BUFF_SIZE);
+	send_message();
+}
+//-------------------------------------------------------------
+/*void SetUART_control_TX(uint8_t index, void* data, uint8_t len)
+{
+	if (index >= UART_BUFF_SIZE || len > (UART_BUFF_SIZE + index))
+		return;
+	
+	memcpy(&uart_tx_buff[index], data, len);
+}*/
+//-------------------------------------------------------------
+void* GetUART_TX(void)
+{
+	return uart_tx_buff;
+}
+//-------------------------------------------------------------
+void* GetUART_RX(void)
+{
+	return uart_rx_buff;
+}
+//-------------------------------------------------------------
+void send_message(void)
+{
+	countStringTx = 0;
+	countTxBuf = 0;
+	countStartTx = 0;
+	statTxDTbits.Full = 0;
+	statTxDTbits.Bits.start_transmitter = 1;
+	UART_TX_F = 1;
+	uart_start_tx_timer();
+}
+//-------------------------------------------------------------
+void reset_buff(void)
+{
+	countStringRx = 0;	
+	countRxBuf = 0;
+	countStartRx = 0;
+	statRxDTbits.Full = 0;
+}
+//-------------------------------------------------------------
+void tx_message(void)
+{
+	#define MAX_CNT		200//200//2000
+	uint32_t i;
+	
+	if (statTxDTbits.Bits.start_transmitter)
+	{
+		if (!statTxDTbits.Bits.transmit_55_complete) 
+		{
+			if (countStartTx < 9)
+			{	
+				countStartTx ++;
+				TXREG = 0x55;                
+				//while (app_uart_put(TXREG) != NRF_SUCCESS);
+				app_uart_put(TXREG);
+				for	(i=0; i<MAX_CNT; i++) {;}
+			}
+			else
+			{
+				statTxDTbits.Bits.transmit_55_complete = 1;
+				countStringTx =0;
+				countTxBuf = 0;
+				countStartTx = 0;
+				TXREG = 0xAA; 
+				//while (app_uart_put(TXREG) != NRF_SUCCESS);
+				app_uart_put(TXREG);
+				for	(i=0; i<MAX_CNT; i++) {;}
+			}
+		}
+		else
+		{
+			if (countStringTx < 8)
+			{
+				TXREG = uart_tx_buff[countTxBuf];
+				countTxBuf ++;
+				countStringTx ++; 
+				//while (app_uart_put(TXREG) != NRF_SUCCESS);
+				app_uart_put(TXREG);
+				for	(i=0; i<MAX_CNT; i++) {;}
+			}
+			else
+			{
+				TXREG = 0xAA;
+				countStringTx =0;
+				if (countTxBuf == UART_BUFF_SIZE)
+					statTxDTbits.Bits.transmit_complete = 1;  
+				//while (app_uart_put(TXREG) != NRF_SUCCESS);
+				app_uart_put(TXREG);
+				for	(i=0; i<MAX_CNT; i++) {;}
+			}
+		}
+	}
+	if (statTxDTbits.Bits.transmit_complete)
+	{
+		uart_stop_tx_timer();
+		UART_TX_F = 0;
+		countStringTx =0;
+		countTxBuf = 0;
+		countStartTx = 0;
+		statTxDTbits.Full = 0;
+		UART_TX_COMPLETE = 1;
+		uart_packets.tx_counter++;
+	}
+}
+//-------------------------------------------------------------
+void rx_message(void)
+{
+	uint8_t bufRxUART = 0;
+	
+	uart_waiting_timer_restart();
+	
+	bufRxUART = RCREG;
+	if (statRxDTbits.Bits.start_reciver)		// прием данных
+	{
+		if (countStringRx < 8)		// прием строки
+		{
+			uart_rx_buff[countRxBuf] = bufRxUART;
+			countRxBuf ++;
+			countStringRx ++;
+		}
+		else 
+		{
+			if (bufRxUART == 0xAA)	// конец строки
+			{
+				countStringRx = 0;
+				if (countRxBuf == UART_BUFF_SIZE)		// конец массива
+				{
+					countRxBuf = 0;
+					countStartRx = 0;
+					statRxDTbits.Full = 0;
+					statRxDTbits.Bits.data_complete = 1;
+					uart_packets.rx_counter++;
+					uart_waiting_timer_stop();
+					uart_repair_timer_restart();	// сброс таймера реанимации урта в расбери
+					
+					// проверка crc
+					if (*(uint8_t*)calc_crc((uint8_t*)GetUART_RX(), UART_BUFF_SIZE) != 0) {
+						set_error(UART_ERROR_E3);								// если crc неправильное
+						UART_RX_F = 0;
+						return;
+					}
+					UART_RX_F = 1;
+					// длина принятых значимых данных
+					uart_data_len = *(uint8_t*)GetUART_len();
+				}
+			}
+			else		// ошибка строки - в конце не 0xAA (сброс массива)
+			{
+				countStringRx = 0;	
+				countRxBuf = 0;
+				countStartRx = 0;
+				statRxDTbits.Full = 0;
+				set_error(UART_ERROR_E1);
+			}
+		}
+	}
+	else		// прием 10-байтной строки-маркера 9*0x55+0xAA
+	{
+		if (statRxDTbits.Bits.char_55_complete)
+		{
+			if (bufRxUART == 0xAA)	// конец строки-маркера, запуск приема массива
+			{
+				statRxDTbits.Bits.start_reciver = 1;
+				countStringRx = 0;	
+				countRxBuf = 0;
+			}
+			else		// ошибка маркера (сброс массива)
+			{
+				countStringRx = 0;	
+				countRxBuf = 0;
+				countStartRx = 0;
+				statRxDTbits.Full = 0;
+				set_error(UART_ERROR_E1);
+			}
+		}
+		else		// продолжение приема строки-маркера
+		{
+			if (bufRxUART == 0x55)
+			{
+				countStartRx ++;
+				if (countStartRx == 9)
+					statRxDTbits.Bits.char_55_complete = 1;
+			}
+			else		// ошибка маркера (сброс массива)
+			{
+				countStringRx = 0;	
+				countRxBuf = 0;
+				countStartRx = 0;
+				statRxDTbits.Full = 0;
+				set_error(UART_ERROR_E2);
+			}
+		}
+	}
+}
+
+//-------------------------------------------------------------
+void uart_event_handle(app_uart_evt_t * p_event)
+{
+    uint32_t       err_code;
+
+    switch (p_event->evt_type)
+    {		
+        case APP_UART_DATA_READY:										// данные приняты UART
+			if (app_uart_get(&RCREG) != NRF_SUCCESS) return;		
+			rx_message();
+			//app_uart_flush();
+            break;
+		
+		case APP_UART_TX_EMPTY:									// данные отправлены UART
+			break;
+
+        case APP_UART_COMMUNICATION_ERROR:
+//            APP_ERROR_HANDLER(p_event->data.error_communication);
+			NRF_UART0->EVENTS_ERROR = 0;
+			err_code = NRF_UART0->ERRORSRC;
+			NRF_UART0->ERRORSRC = err_code;
+            break;
+
+        case APP_UART_FIFO_ERROR:
+//            APP_ERROR_HANDLER(p_event->data.error_code);
+			NRF_UART0->EVENTS_ERROR = 0;
+			err_code = NRF_UART0->ERRORSRC;
+			NRF_UART0->ERRORSRC = err_code;
+            break;
+
+        default:
+            break;
+    }
+}
+//-------------------------------------------------------------
+static void uart_init(void)
+{
+	uint32_t	err_code;
+	uint8_t 	err_cnt = 0;
+	
+    app_uart_comm_params_t const comm_params =
+    {
+        .rx_pin_no    = RX_PIN_NUMBER,
+        .tx_pin_no    = TX_PIN_NUMBER,
+        .rts_pin_no   = RTS_PIN_NUMBER,
+        .cts_pin_no   = CTS_PIN_NUMBER,
+        .flow_control = APP_UART_FLOW_CONTROL_DISABLED,
+        .use_parity   = false,
+        .baud_rate    = UART_BAUDRATE_BAUDRATE_Baud115200//UART_BAUDRATE_BAUDRATE_Baud9600//
+    };
+	
+	do
+	{
+		APP_UART_FIFO_INIT(&comm_params,
+						   UART_RX_FIFO_SIZE,
+						   UART_TX_FIFO_SIZE,
+						   uart_event_handle,
+						   APP_IRQ_PRIORITY_LOWEST,
+						   err_code);
+		err_cnt++;
+	}
+	while(err_code != NRF_SUCCESS || err_cnt > 100);
+	
+    APP_ERROR_CHECK(err_code);
+	
+//	nrf_gpio_cfg_output(TX_PIN_NUMBER);
+//	nrf_gpio_cfg_input(RX_PIN_NUMBER, NRF_GPIO_PIN_PULLUP);
+}
+//-------------------------------------------------------------
+static void uart_waiting_timer_handler(void * p_context)
+{
+	set_error(UART_ERROR_E6);
+}
+//-------------------------------------------------------------
+static void uart_repair_timer_handler(void * p_context)
+{
+	set_error(UART_ERROR_E7);
+}
+//-------------------------------------------------------------
+void app_timers_init(void)
+{
+	app_timer_create(&uart_repair_timer_id,
+					 APP_TIMER_MODE_REPEATED,
+					 uart_repair_timer_handler);
+	
+	app_timer_create(&uart_waiting_timer_id,
+					 APP_TIMER_MODE_SINGLE_SHOT,
+					 uart_waiting_timer_handler);
+}
+//-------------------------------------------------------------
+void uart_start_tx_timer(void)
+{
+	if (!nrf_drv_timer_is_enabled(&UART_TX_TIMER))
+		nrf_drv_timer_enable(&UART_TX_TIMER);
+}
+//-------------------------------------------------------------
+void uart_stop_tx_timer(void)
+{
+	nrf_drv_timer_disable(&UART_TX_TIMER);
+}
+//-------------------------------------------------------------
+static void uart_tx_timer_handler(nrf_timer_event_t event_type, void* p_context)
+{
+    switch (event_type)
+    {
+        case NRF_TIMER_EVENT_COMPARE0:
+            if (UART_TX_F)
+			{
+				tx_message();
+			}
+            break;
+
+        default:
+            //Do nothing.
+            break;
+    }
+}
+//-------------------------------------------------------------
+// Настройка таймера для отправки пакета по uart
+static void uart_tx_timer_init(void)
+{
+	uint32_t err_code;
+	nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
+    err_code = nrf_drv_timer_init(&UART_TX_TIMER, &timer_cfg, uart_tx_timer_handler);
+    APP_ERROR_CHECK(err_code);
+	
+	uint32_t time_us = UART_TX_TIMER_INTERVAL;
+    uint32_t time_ticks;
+	time_ticks = nrf_drv_timer_us_to_ticks(&UART_TX_TIMER, time_us);
+	nrf_drv_timer_extended_compare(&UART_TX_TIMER, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+}
+//-------------------------------------------------------------
+void uart_start(void)
+{
+	app_uart_close();	
+	uart_init();
+	app_timers_init();
+	uart_tx_timer_init();
+	uart_repair_timer_restart();
+}
+//-------------------------------------------------------------
+void uart_stop(void)
+{
+	app_uart_flush();
+	app_uart_close();
+	
+//	nrf_gpio_cfg_output(RX_PIN_NUMBER);
+//	nrf_gpio_pin_clear(RX_PIN_NUMBER);
+//	nrf_gpio_cfg_output(TX_PIN_NUMBER);
+//	nrf_gpio_pin_clear(TX_PIN_NUMBER);
+}
