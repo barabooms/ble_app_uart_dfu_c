@@ -107,8 +107,8 @@ void send_error(void)
 	buff[DONGLE_COMMAND_IDX] = *(uint8_t*)GetUART_com();
 	memset(&buff[DONGLE_DATA_IDX], 0xFF, 2);
 	buff[DONGLE_ERROR_IDX] = uart_error_type;
-	memcpy(&buff[DONGLE_XOR_IDX], calc_crc(buff, BLE_BUFF_LEN - 1), 1);	// подсчет crc пакета для ответа
-	//buff[DONGLE_XOR_IDX] = calc_crc(buff, BLE_BUFF_LEN - 1);		// подсчет crc пакета для ответа
+	memcpy(&buff[DONGLE_XOR_IDX], calc_crc(buff, UART_BUFF_SIZE - 1), 1);	// подсчет crc пакета для ответа
+	//buff[DONGLE_XOR_IDX] = calc_crc(buff, UART_BUFF_SIZE - 1);		// подсчет crc пакета для ответа
 
 	SetUART_TX(buff);												// перенос временного буфера в uart на отправку
 //	send_message();													// начать передачу по uart

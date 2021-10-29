@@ -2698,6 +2698,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\libraries\crc32\crc32.c</FilePath>
             </File>
+            <File>
+              <FileName>nrf_fstorage_sd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>G:\components\libraries\fstorage\nrf_fstorage_sd.c</FilePath>
+            </File>
+            <File>
+              <FileName>nrf_fstorage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>G:\components\libraries\fstorage\nrf_fstorage.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -6029,6 +6039,16 @@
               <FileName>crc32.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\libraries\crc32\crc32.c</FilePath>
+            </File>
+            <File>
+              <FileName>nrf_fstorage_sd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>G:\components\libraries\fstorage\nrf_fstorage_sd.c</FilePath>
+            </File>
+            <File>
+              <FileName>nrf_fstorage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>G:\components\libraries\fstorage\nrf_fstorage.c</FilePath>
             </File>
           </Files>
         </Group>

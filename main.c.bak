@@ -64,10 +64,10 @@
 #include "nrf_log_default_backends.h"
 
 #include "crc32.h"
-#include "init_packet.h"
+#include "version.h"
 #include "structures.h"
 #include "uart.h"
-#include "memory_strorage.h"
+#include "memory_storage.h"
 
 
 #define SCAN_INTERVAL             0x00A0                                /**< Determines scan interval in units of 0.625 millisecond. */
@@ -95,6 +95,8 @@ typedef struct {
 	uint32_t 
 		max_size,
 		offset,
+		ram_offset,
+		flash_offset,
 		crc32;
 } resp_sel_com_t;
 resp_sel_com_t resp_com;
@@ -103,7 +105,16 @@ uint8_t resp_step = 0;
 
 resp_sel_com_t dongle_dfu_ip;
 uint8_t* dongle_dfu_ip_ptr = NULL;
-uint8_t dongle_dfu_ip_data[256] = {0};
+uint32_t init_packet_size = 0;
+
+resp_sel_com_t dongle_dfu_fi;
+uint8_t* dongle_dfu_fi_ptr = NULL;
+uint32_t firmware_image_size = 0;
+
+uint32_t image_crc32_calc = 0;
+uint8_t* image_ptr = NULL;
+
+uint8_t dfu_process_percent = 0;
 
 typedef struct {
 	bool is_ok;
@@ -123,8 +134,10 @@ device_t device_list[BLE_DEVICE_LEN];
 uint8_t device_selected_idx = 0xFF;
 uint8_t device_selected_addr[BLE_GAP_ADDR_LEN];
 uint8_t device_counter = 0;
+
 const char DEV_NAME[] = "Rstat EASY SMART";
 const char DFU_NAME[] = "DFU_RstatEasySmart";
+
 ble_buffer_t ble_rx;
 ble_buffer_t ble_tx;
 
@@ -584,8 +597,8 @@ static void ble_dfu_control_point_received(uint8_t * p_data, uint16_t data_len)
 			if (p_data[2] == NRF_DFU_RES_CODE_SUCCESS) {
 				memcpy(&resp_com.offset, &p_data[3], sizeof(uint32_t));
 				memcpy(&resp_com.crc32, &p_data[7], sizeof(uint32_t));
-				uint32_t crc32 = crc32_compute(init_packet, resp_com.offset, NULL);
-				if (resp_com.crc32 == crc32) {
+				image_crc32_calc = crc32_compute(image_ptr, resp_com.offset, NULL);
+				if (resp_com.crc32 == image_crc32_calc) {
 					if (who_sending == NRF_DFU_OBJ_TYPE_COMMAND) {
 						if (init_packet_is_sending) resp_step = 4;
 						else resp_step = 2;
@@ -606,10 +619,10 @@ static void ble_dfu_control_point_received(uint8_t * p_data, uint16_t data_len)
 				resp_sel_com_ok = true;
 				
 				if (who_sending == NRF_DFU_OBJ_TYPE_COMMAND) {
-					uint32_t crc32 = crc32_compute(init_packet, sizeof(init_packet), NULL);
-					if (resp_com.offset != sizeof(init_packet) || resp_com.crc32 != crc32) {
-						crc32 = crc32_compute(init_packet, resp_com.offset, NULL);
-						if (resp_com.offset == 0 || resp_com.offset > sizeof(init_packet) || resp_com.crc32 != crc32) {
+					image_crc32_calc = crc32_compute(image_ptr, init_packet_size, NULL);
+					if (resp_com.offset != init_packet_size || resp_com.crc32 != image_crc32_calc) {
+						image_crc32_calc = crc32_compute(image_ptr, resp_com.offset, NULL);
+						if (resp_com.offset == 0 || resp_com.offset > init_packet_size || resp_com.crc32 != image_crc32_calc) {
 							resp_step = 1;
 						}
 						else resp_step = 2;
@@ -1019,12 +1032,34 @@ void execute_dongle_command(void)
 		case 0xCB: {
 			buff[DONGLE_LEN_IDX] = 1;
 			PREPARE_DFU_F = 1;
-			RESET_LIST_F = 1;
+		} break;
+		// получить версию прошивки dongle
+		case 0xC0: {
+			memset(buff + DONGLE_DATA_IDX, VERSION_INT, sizeof(uint32_t));
+			buff[DONGLE_LEN_IDX] = sizeof(uint32_t) + sizeof(com);
 		} break;
 		
 		default:
 			break;
 	}
+	// подсчет crc пакета для ответа
+	memcpy(&buff[DONGLE_XOR_IDX], calc_crc(buff, UART_BUFF_SIZE - 1), 1);
+	// перенос временного буфера в uart и отправка
+	SetUART_TX(buff);
+}
+//--------------------------------------------------------------------------
+
+void send_process_firmware(void)
+{
+	uint8_t buff[UART_BUFF_SIZE] = {0};
+	// запись адреса отправителя
+	buff[UART_ADDR_IDX] = DONGLE_DFU_START_BYTE;
+	// запись номера команды
+	buff[DONGLE_COMMAND_IDX] = 0xDF;
+	// записать данные
+	buff[DONGLE_DATA_IDX] = dfu_process_percent;
+	// размер значимых данных, с командой
+	buff[DONGLE_LEN_IDX] = 1 + sizeof(dfu_process_percent);
 	// подсчет crc пакета для ответа
 	memcpy(&buff[DONGLE_XOR_IDX], calc_crc(buff, UART_BUFF_SIZE - 1), 1);
 	// перенос временного буфера в uart и отправка
@@ -1045,36 +1080,79 @@ void execute_dongle_dfu_command(void)
 	buff[DONGLE_COMMAND_IDX] = com;
 	
 	switch (com) {
+		// Init Packet
 		// Выделить место для Init Packet
 		case 0xD1: {
 			memset(&dongle_dfu_ip, 0x00, sizeof(dongle_dfu_ip));
 			memcpy(&dongle_dfu_ip.max_size, (uint8_t*)GetUART_dat(), sizeof(dongle_dfu_ip.max_size));
+			init_packet_size = dongle_dfu_ip.max_size;
 			dongle_dfu_ip.crc32 = 0;
-			dongle_dfu_ip_ptr = dongle_dfu_ip_data;
-			// clear flash page
-			memset(dongle_dfu_ip_ptr, 0x00, sizeof(dongle_dfu_ip_data));	// test
+			dongle_dfu_ip_ptr = fstorage_get_image_ptr();
+			fstorage_clear_flash(FLASH_INIT_PACKET, &dongle_dfu_ip.flash_offset);// clear flash page
+//			memset(dongle_dfu_ip_ptr, 0x00, RAM_IMAGE_SIZE);	// test
 			buff[DONGLE_LEN_IDX] = sizeof(com);
 		} break;
 		// Записать данные Init Packet
 		case 0xD2: {
 			uint8_t size = *(uint8_t*)GetUART_len() - 1;
-			memcpy(dongle_dfu_ip_ptr + dongle_dfu_ip.offset, (uint8_t*)GetUART_dat(), size);	// write to test buff
-			dongle_dfu_ip.crc32 = crc32_compute(dongle_dfu_ip_ptr + dongle_dfu_ip.offset, size, &dongle_dfu_ip.crc32);
-			dongle_dfu_ip.offset += size;
-			if (dongle_dfu_ip.max_size <= dongle_dfu_ip.offset) {
-				// write to flash
+			memcpy(dongle_dfu_ip_ptr + dongle_dfu_ip.ram_offset, (uint8_t*)GetUART_dat(), size);	// write to test buff
+			dongle_dfu_ip.crc32 = crc32_compute(dongle_dfu_ip_ptr + dongle_dfu_ip.ram_offset, size, &dongle_dfu_ip.crc32);
+			dongle_dfu_ip.ram_offset += size;
+			dongle_dfu_ip.flash_offset += size;
+			if (dongle_dfu_ip.max_size <= dongle_dfu_ip.flash_offset || RAM_IMAGE_SIZE <= dongle_dfu_ip.ram_offset) {
+				uint32_t page_offset = (dongle_dfu_ip.flash_offset / dongle_dfu_ip.ram_offset) - 1;
+				fstorage_write_flash(FLASH_INIT_PACKET, dongle_dfu_ip_ptr, &dongle_dfu_ip.ram_offset, &page_offset);// write to flash
+				dongle_dfu_ip.ram_offset = 0;
 			}
-			memcpy(&buff[DONGLE_DATA_IDX], &dongle_dfu_ip.offset, sizeof(dongle_dfu_ip.offset));
-			memcpy(&buff[DONGLE_DATA_IDX + sizeof(dongle_dfu_ip.offset)], &dongle_dfu_ip.crc32, sizeof(dongle_dfu_ip.crc32));
-			buff[DONGLE_LEN_IDX] = 1 + sizeof(dongle_dfu_ip.offset) + sizeof(dongle_dfu_ip.crc32);
+			memcpy(&buff[DONGLE_DATA_IDX], &dongle_dfu_ip.flash_offset, sizeof(dongle_dfu_ip.flash_offset));
+			memcpy(&buff[DONGLE_DATA_IDX + sizeof(dongle_dfu_ip.flash_offset)], &dongle_dfu_ip.crc32, sizeof(dongle_dfu_ip.crc32));
+			buff[DONGLE_LEN_IDX] = 1 + sizeof(dongle_dfu_ip.flash_offset) + sizeof(dongle_dfu_ip.crc32);
 		} break;
 		// Посчитать CRC32 Init Packet
 		case 0xDC: {
-			memcpy(&buff[DONGLE_DATA_IDX], &dongle_dfu_ip.offset, sizeof(dongle_dfu_ip.offset));
-			memcpy(&buff[DONGLE_DATA_IDX + sizeof(dongle_dfu_ip.offset)], &dongle_dfu_ip.crc32, sizeof(dongle_dfu_ip.crc32));
-			buff[DONGLE_LEN_IDX] = 1 + sizeof(dongle_dfu_ip.offset) + sizeof(dongle_dfu_ip.crc32);
+			memcpy(&buff[DONGLE_DATA_IDX], &dongle_dfu_ip.flash_offset, sizeof(dongle_dfu_ip.flash_offset));
+			memcpy(&buff[DONGLE_DATA_IDX + sizeof(dongle_dfu_ip.flash_offset)], &dongle_dfu_ip.crc32, sizeof(dongle_dfu_ip.crc32));
+			buff[DONGLE_LEN_IDX] = 1 + sizeof(dongle_dfu_ip.flash_offset) + sizeof(dongle_dfu_ip.crc32);
 		} break;
-		
+		// Firmware Image
+		// Выделить место для Firmware Image
+		case 0xF1: {
+			memset(&dongle_dfu_fi, 0x00, sizeof(dongle_dfu_fi));
+			memcpy(&dongle_dfu_fi.max_size, (uint8_t*)GetUART_dat(), sizeof(dongle_dfu_fi.max_size));
+			firmware_image_size = dongle_dfu_fi.max_size;
+			dongle_dfu_fi.crc32 = 0;
+			dongle_dfu_fi_ptr = fstorage_get_image_ptr();
+			fstorage_clear_flash(FLASH_FIRMWARE_IMAGE, &dongle_dfu_fi.flash_offset);// clear flash page
+//			memset(dongle_dfu_ip_ptr, 0x00, RAM_IMAGE_SIZE);	// test
+			buff[DONGLE_LEN_IDX] = sizeof(com);
+		} break;
+		// Записать данные Firmware Image
+		case 0xF2: {
+			uint8_t size = *(uint8_t*)GetUART_len() - 1;
+			memcpy(dongle_dfu_fi_ptr + dongle_dfu_fi.ram_offset, (uint8_t*)GetUART_dat(), size);	// write to test buff
+			dongle_dfu_fi.crc32 = crc32_compute(dongle_dfu_fi_ptr + dongle_dfu_fi.ram_offset, size, &dongle_dfu_fi.crc32);
+			dongle_dfu_fi.ram_offset += size;
+			dongle_dfu_fi.flash_offset += size;
+			if (dongle_dfu_fi.max_size <= dongle_dfu_fi.flash_offset || RAM_IMAGE_SIZE <= dongle_dfu_fi.ram_offset) {
+				uint32_t page_offset = (dongle_dfu_fi.flash_offset - size)/ RAM_IMAGE_SIZE;
+				fstorage_write_flash(FLASH_FIRMWARE_IMAGE, dongle_dfu_fi_ptr, &dongle_dfu_fi.ram_offset, &page_offset);// write to flash
+				dongle_dfu_fi.ram_offset = 0;
+			}
+			memcpy(&buff[DONGLE_DATA_IDX], &dongle_dfu_fi.flash_offset, sizeof(dongle_dfu_fi.flash_offset));
+			memcpy(&buff[DONGLE_DATA_IDX + sizeof(dongle_dfu_fi.flash_offset)], &dongle_dfu_fi.crc32, sizeof(dongle_dfu_fi.crc32));
+			buff[DONGLE_LEN_IDX] = 1 + sizeof(dongle_dfu_fi.flash_offset) + sizeof(dongle_dfu_fi.crc32);
+		} break;
+		// Посчитать CRC32 Firmware Image
+		case 0xFC: {
+			memcpy(&buff[DONGLE_DATA_IDX], &dongle_dfu_fi.flash_offset, sizeof(dongle_dfu_fi.flash_offset));
+			memcpy(&buff[DONGLE_DATA_IDX + sizeof(dongle_dfu_fi.flash_offset)], &dongle_dfu_fi.crc32, sizeof(dongle_dfu_fi.crc32));
+			buff[DONGLE_LEN_IDX] = 1 + sizeof(dongle_dfu_fi.flash_offset) + sizeof(dongle_dfu_fi.crc32);
+		} break;
+		// Начать процесс загрузки прошивки
+		case 0xDF: {
+			send_process_firmware();
+			return;
+		} //break;
 		default:
 			break;
 	}
@@ -1221,7 +1299,7 @@ void flag_handler(void)
 							} break;
 							// Create command
 							case 1: {
-								uint32_t size = sizeof(init_packet) - resp_com.offset;
+								uint32_t size = init_packet_size - resp_com.offset;
 								data_to_send[0] = BLE_DFU_OP_CODE_CREATE_OBJECT;
 								data_to_send[1] = NRF_DFU_OBJ_TYPE_COMMAND;
 								memcpy(&data_to_send[2], &size, sizeof(uint32_t));
@@ -1230,10 +1308,10 @@ void flag_handler(void)
 							} break;
 							// Transfer data
 							case 2: {
-								uint16_t size = (sizeof(init_packet) - send_data_offset < sizeof(data_to_send)) ? sizeof(init_packet) - send_data_offset : sizeof(data_to_send);
-								memcpy(data_to_send, &init_packet[send_data_offset], size);
+								uint16_t size = (init_packet_size - send_data_offset < sizeof(data_to_send)) ? init_packet_size - send_data_offset : sizeof(data_to_send);
+								memcpy(data_to_send, &image_ptr[send_data_offset], size);
 								send_data_offset += size;
-								if (send_data_offset >= sizeof(init_packet)) {
+								if (send_data_offset >= init_packet_size) {
 									init_packet_is_sending = true;
 									resp_step = 3;
 								}
@@ -1362,6 +1440,7 @@ int main(void)
 	scan_init();
 	uart_start();
 	application_timers_start();
+	fstorage_init();
 
 	ret_val = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_SCAN_INIT, NULL, 4);
 	APP_ERROR_CHECK(ret_val);

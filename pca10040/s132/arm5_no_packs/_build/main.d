@@ -94,6 +94,7 @@
 .\_build\main.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_backend_interface.h
 .\_build\main.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_default_backends.h
 .\_build\main.o: ..\..\..\..\..\..\components\libraries\crc32\crc32.h
-.\_build\main.o: ..\..\..\init_packet.h
+.\_build\main.o: ..\..\..\version.h
 .\_build\main.o: ..\..\..\structures.h
 .\_build\main.o: ..\..\..\uart.h
+.\_build\main.o: ..\..\..\memory_storage.h

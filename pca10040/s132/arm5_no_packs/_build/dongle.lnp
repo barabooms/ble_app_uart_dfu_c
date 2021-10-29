@@ -1,6 +1,7 @@
 --cpu=Cortex-M4.fp.sp
 ".\_build\main.o"
 ".\_build\uart.o"
+".\_build\memory_storage.o"
 ".\_build\boards.o"
 ".\_build\bsp.o"
 ".\_build\utf.o"
@@ -45,6 +46,8 @@
 ".\_build\nrf_strerror.o"
 ".\_build\retarget.o"
 ".\_build\crc32.o"
+".\_build\nrf_fstorage_sd.o"
+".\_build\nrf_fstorage.o"
 ".\_build\nrf_log_backend_rtt.o"
 ".\_build\nrf_log_backend_serial.o"
 ".\_build\nrf_log_default_backends.o"
