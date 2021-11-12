@@ -174,7 +174,7 @@ uint8_t data_to_send[DATA_TO_SEND_LEN] = {0};
 APP_TIMER_DEF(m_second_timer_id);
 #define SECOND_INTERVAL     APP_TIMER_TICKS(1000)
 APP_TIMER_DEF(m_dfu_tx_timer_id);
-#define DFU_TX_INTERVAL     APP_TIMER_TICKS(50)
+#define DFU_TX_INTERVAL     APP_TIMER_TICKS(100)
 
 uint8_t dfu_delay_counter = 0;
 
@@ -678,15 +678,15 @@ static void ble_dfu_control_point_received(uint8_t * p_data, uint16_t data_len)
 				}
 				else {
 					if (who_sending == NRF_DFU_OBJ_TYPE_COMMAND) {
-						resp_step = 0;
+						resp_step = 1;
 					}
 					else if (who_sending == NRF_DFU_OBJ_TYPE_DATA) {
-						resp_step = 5;
+						resp_step = 6;
 					}
 //					resp_step = 0xFF;
 					NRF_LOG_INFO("CRC32 is BAD  ");
 					NRF_LOG_INFO("crc32_calc = 0x%x", image_crc32_calc);
-					NRF_LOG_INFO("crc32_calc = 0x%x", resp_com.crc32);
+					NRF_LOG_INFO("crc32_get = 0x%x", resp_com.crc32);
 				}
 			}
 		} break;

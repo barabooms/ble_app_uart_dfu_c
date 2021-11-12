@@ -87,7 +87,6 @@
 .\_build\main.o: ..\..\..\..\..\..\components\ble\nrf_ble_scan\nrf_ble_scan.h
 .\_build\main.o: ..\..\..\..\..\..\components\libraries\delay\nrf_delay.h
 .\_build\main.o: ..\..\..\..\..\..\components\libraries\log\nrf_log.h
-.\_build\main.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\main.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h
 .\_build\main.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_ctrl.h
 .\_build\main.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_ctrl_internal.h

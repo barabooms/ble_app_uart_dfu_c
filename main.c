@@ -678,15 +678,15 @@ static void ble_dfu_control_point_received(uint8_t * p_data, uint16_t data_len)
 				}
 				else {
 					if (who_sending == NRF_DFU_OBJ_TYPE_COMMAND) {
-						resp_step = 0;
+						resp_step = 1;
 					}
 					else if (who_sending == NRF_DFU_OBJ_TYPE_DATA) {
-						resp_step = 5;
+						resp_step = 6;
 					}
 //					resp_step = 0xFF;
 					NRF_LOG_INFO("CRC32 is BAD  ");
 					NRF_LOG_INFO("crc32_calc = 0x%x", image_crc32_calc);
-					NRF_LOG_INFO("crc32_calc = 0x%x", resp_com.crc32);
+					NRF_LOG_INFO("crc32_get = 0x%x", resp_com.crc32);
 				}
 			}
 		} break;
@@ -1285,9 +1285,7 @@ void execute_dongle_dfu_command(void)
 		} break;
 		// Получить процент загрузки прошивки
 		case 0xDF: {
-			if (BLE_CON_STATE) {
-				send_process_firmware();
-			}
+			send_process_firmware();
 			return;
 		} //break;
 		default:

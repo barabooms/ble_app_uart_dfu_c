@@ -120,6 +120,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
+          <Name>¬¬СwьV3ьV3п;Рs</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -192,7 +193,7 @@
         <Ww>
           <count>8</count>
           <WinNumber>1</WinNumber>
-          <ItemText>dfu_process_percent</ItemText>
+          <ItemText>dfu_process_percent,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>

@@ -7,6 +7,7 @@
 #include "nrf_soc.h"
 #include "nordic_common.h"
 #include "app_util.h"
+#include "app_error.h"
 #include "nrf_fstorage.h"
 #include "memory_storage.h"
 

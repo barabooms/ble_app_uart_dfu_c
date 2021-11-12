@@ -29,7 +29,6 @@
 .\_build\nrf_sortlist.o: ..\..\..\..\..\..\components\libraries\sortlist\nrf_sortlist.h
 .\_build\nrf_sortlist.o: ..\..\..\..\..\..\components\libraries\log\nrf_log.h
 .\_build\nrf_sortlist.o: ..\..\..\..\..\..\components\libraries\experimental_section_vars\nrf_section.h
-.\_build\nrf_sortlist.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\nrf_sortlist.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h
 .\_build\nrf_sortlist.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_instance.h
 .\_build\nrf_sortlist.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_types.h

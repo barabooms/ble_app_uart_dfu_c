@@ -62,6 +62,14 @@ uint8_t* fstorage_init_packet_ptr(void)
 }
 
 
+uint8_t* fstorage_firmware_image_ptr(void)
+{
+	uint32_t* pb = (uint32_t*)firmware_image_flash_addr;
+	uint8_t* p = (uint8_t*)pb;
+	return p;
+}
+
+
 static uint32_t round_up_u32(uint32_t len)
 {
     if (len % sizeof(uint32_t)) {
