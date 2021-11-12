@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 //==============================================================
-#define FIRMWARE_VERSION					"211021"
+//#define FIRMWARE_VERSION					"211021"
 //#define DEBUG_VERSION
 //==============================================================
 #define BLE_BUFF_LEN						128

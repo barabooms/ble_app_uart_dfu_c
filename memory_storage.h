@@ -10,9 +10,12 @@
 
 typedef enum {
 	FLASH_INIT_PACKET,
-	FLASH_FIRMWARE_IMAGE
+	FLASH_FIRMWARE_IMAGE,
+	FLASH_CONFIG
 } flash_addr_type_t;
 
+uint8_t* fstorage_init_packet_ptr(void);
+uint8_t* fstorage_firmware_image_ptr(void);
 
 void fstorage_init(void);
 uint8_t* fstorage_get_image_ptr(void);

@@ -36,10 +36,11 @@ NRF_FSTORAGE_DEF(nrf_fstorage_t fstorage) =
      * You must set these manually, even at runtime, before nrf_fstorage_init() is called.
      * The function nrf5_flash_end_addr_get() can be used to retrieve the last address on the
      * last page of flash available to write data. */
-    .start_addr = 0x40000,
+    .start_addr = 0x3F000,
     .end_addr   = 0x52000,
 };
 
+uint32_t const config_flash_addr = 0x0003F000;
 uint32_t const init_packet_flash_addr = 0x00040000;
 uint32_t const firmware_image_flash_addr    = 0x00041000;
 uint32_t const flash_page_size = NRF_FSTORAGE_SD_MAX_WRITE_SIZE;//0x00001000;
@@ -50,6 +51,15 @@ uint8_t image_data[RAM_IMAGE_SIZE] = {0};
 static uint32_t image_data_for_write[RAM_IMAGE_SIZE / 4] = {0};
 
 
+
+
+
+uint8_t* fstorage_init_packet_ptr(void)
+{
+	uint32_t* pb = (uint32_t*)init_packet_flash_addr;
+	uint8_t* p = (uint8_t*)pb;
+	return p;
+}
 
 
 static uint32_t round_up_u32(uint32_t len)
@@ -69,7 +79,10 @@ uint8_t* fstorage_get_image_ptr(void)
 
 void fstorage_clear_flash(flash_addr_type_t type, uint32_t* page_offset_p)
 {
-	offset = (*page_offset_p) * flash_page_size;
+	if (!page_offset_p)
+		offset = 0;
+	else
+		offset = (*page_offset_p) * flash_page_size;
 	// clear ram
 	memset(fstorage_get_image_ptr(), 0x00, RAM_IMAGE_SIZE);
 	// clear flash
@@ -80,6 +93,9 @@ void fstorage_clear_flash(flash_addr_type_t type, uint32_t* page_offset_p)
 		case FLASH_FIRMWARE_IMAGE: {
 			nrf_fstorage_erase(&fstorage, firmware_image_flash_addr, (fstorage.end_addr - firmware_image_flash_addr) / flash_page_size, NULL);
 		} break;
+		case FLASH_CONFIG: {
+			nrf_fstorage_erase(&fstorage, config_flash_addr, 1, NULL);
+		} break;
 	}
 	wait_for_flash_ready(&fstorage);
 }
@@ -88,7 +104,10 @@ void fstorage_clear_flash(flash_addr_type_t type, uint32_t* page_offset_p)
 uint8_t fstorage_write_flash(flash_addr_type_t type, uint8_t* data_p, uint32_t* size_p, uint32_t* page_offset_p)
 {
 	ret_code_t rc = NRF_SUCCESS;
-	offset = (*page_offset_p) * RAM_IMAGE_SIZE;
+	if (!page_offset_p)
+		offset = 0;
+	else
+		offset = (*page_offset_p) * RAM_IMAGE_SIZE;
 	size = *size_p;
 	memcpy(image_data_for_write, data_p, size);
 	uint32_t len = round_up_u32(size);
@@ -98,8 +117,11 @@ uint8_t fstorage_write_flash(flash_addr_type_t type, uint8_t* data_p, uint32_t* 
 			rc = nrf_fstorage_write(&fstorage, init_packet_flash_addr + offset, &image_data_for_write, len, NULL);
 		} break;
 		case FLASH_FIRMWARE_IMAGE: {
-			NRF_LOG_INFO("addr = %X8 \r\n", firmware_image_flash_addr + offset);
+//			NRF_LOG_INFO("addr = %X8 \r\n", firmware_image_flash_addr + offset);
 			rc = nrf_fstorage_write(&fstorage, firmware_image_flash_addr + offset, &image_data_for_write, len, NULL);
+		} break;
+		case FLASH_CONFIG: {
+			rc = nrf_fstorage_write(&fstorage, config_flash_addr, &image_data_for_write, len, NULL);
 		} break;
 	}
 	wait_for_flash_ready(&fstorage);
@@ -113,14 +135,22 @@ uint8_t fstorage_write_flash(flash_addr_type_t type, uint8_t* data_p, uint32_t* 
 uint8_t fstorage_read_flash(flash_addr_type_t type, uint8_t* data_p, uint32_t* size_p, uint32_t* page_offset_p)
 {
 	ret_code_t rc = NRF_SUCCESS;
-	offset = *page_offset_p;
+	if (!page_offset_p)
+		offset = 0;
+	else
+		offset = *page_offset_p;
 	size = *size_p;
+	if (size > RAM_IMAGE_SIZE)
+		size = RAM_IMAGE_SIZE;
 	switch (type) {
 		case FLASH_INIT_PACKET: {
 			rc = nrf_fstorage_read(&fstorage, init_packet_flash_addr + offset, data_p, size);
 		} break;
 		case FLASH_FIRMWARE_IMAGE: {
 			rc = nrf_fstorage_read(&fstorage, firmware_image_flash_addr + offset, data_p, size);
+		} break;
+		case FLASH_CONFIG: {
+			rc = nrf_fstorage_read(&fstorage, config_flash_addr, data_p, size);
 		} break;
 	}
 	if (rc != NRF_SUCCESS)
