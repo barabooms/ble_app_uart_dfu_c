@@ -72,7 +72,7 @@
 
 #define SCAN_INTERVAL             0x00A0                                /**< Determines scan interval in units of 0.625 millisecond. */
 #define SCAN_WINDOW               0x0050                                /**< Determines scan window in units of 0.625 millisecond. */
-#define SCAN_TIMEOUT              0x0000                                /**< Timout when scanning. 0x0000 disables timeout. */
+#define SCAN_TIMEOUT              0x000A                                /**< Timout when scanning. 0x0000 disables timeout. */
 
 #define MIN_CONNECTION_INTERVAL   MSEC_TO_UNITS(7.5, UNIT_1_25_MS)      /**< Determines minimum connection interval in milliseconds. */
 #define MAX_CONNECTION_INTERVAL   MSEC_TO_UNITS(75, UNIT_1_25_MS)       /**< Determines maximum connection interval in milliseconds. */
@@ -83,13 +83,10 @@
 #define APP_BLE_CONN_CFG_TAG    1                                       /**< Tag that refers to the BLE stack configuration set with @ref sd_ble_cfg_set. The default tag is @ref BLE_CONN_CFG_TAG_DEFAULT. */
 #define APP_BLE_OBSERVER_PRIO   3                                       /**< BLE observer priority of the application. There is no need to modify this value. */
 
-#define UART_TX_BUF_SIZE        256                                     /**< UART TX buffer size. */
-#define UART_RX_BUF_SIZE        256                                     /**< UART RX buffer size. */
 
 #define NUS_SERVICE_UUID_TYPE   BLE_UUID_TYPE_VENDOR_BEGIN              /**< UUID type for the Nordic UART Service (vendor specific). */
 #define DFU_SERVICE_UUID_TYPE   BLE_UUID_TYPE_BLE
 
-#define ECHOBACK_BLE_UART_DATA  0                                       /**< Echo the UART data that is received over the Nordic UART Service (NUS) back to the sender. */
 
 #define MAX_DFU_PKT_LEN                     (20)                                                    /**< Maximum length (in bytes) of the DFU Packet characteristic. */
 #define PKT_CREATE_PARAM_LEN                (6)                                                     /**< Length (in bytes) of the parameters for Create Object request. */
@@ -192,6 +189,17 @@ NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                        /**< BLE
 
 
 
+static ble_gap_scan_params_t const m_scan_params =
+{
+    .active        = 0x01,
+    .interval      = SCAN_INTERVAL,
+    .window        = SCAN_WINDOW,
+    .filter_policy = BLE_GAP_SCAN_FP_ACCEPT_ALL,//BLE_GAP_SCAN_FP_WHITELIST,
+    .timeout       = SCAN_TIMEOUT,
+    .scan_phys     = BLE_GAP_PHY_1MBPS,
+};
+
+
 /**@brief NUS UUID. */
 static ble_uuid_t const m_nus_uuid = {
 	.uuid = BLE_UUID_NUS_SERVICE,
@@ -286,19 +294,41 @@ bool find_device(scan_evt_t const * p_scan_evt)
 
 void add_device(scan_evt_t const * p_scan_evt)
 {
+	uint32_t      err_code;
+	uint8_array_t adv_data;
+	uint8_array_t dev_name;
+	
+	bool found_name = false;
+	if (p_scan_evt->params.filter_match.filter_match.name_filter_match) {
+		// Prepare advertisement report for parsing.
+		adv_data.p_data = (uint8_t *)p_scan_evt->params.filter_match.p_adv_report->data.p_data;
+		adv_data.size   = p_scan_evt->params.filter_match.p_adv_report->data.len;
+		err_code = adv_report_parse(BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME, &adv_data, &dev_name);
+		if (err_code != NRF_SUCCESS) {
+			// Look for the short local name if it was not found as complete.
+			err_code = adv_report_parse(BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME, &adv_data, &dev_name);
+			if (err_code != NRF_SUCCESS) return;
+			else found_name = true;
+		}
+		else found_name = true;
+	}
+	
 	// For readibility.
 	ble_gap_addr_t const * peer_addr  = &p_scan_evt->params.filter_match.p_adv_report->peer_addr;
-
-	for (uint8_t i = 0; i < BLE_DEVICE_LEN; i++) {
-		if (!device_list[i].is_ok) {
-			device_t* dev = &device_list[i];
-			dev->is_ok = true;
-			dev->is_dfu = false;
-			dev->rssi = p_scan_evt->params.filter_match.p_adv_report->rssi;
-			memcpy(&dev->peer_addr, peer_addr, sizeof(dev->peer_addr));
-			dev->conn_handle = BLE_CONN_HANDLE_INVALID;
-			device_counter++;
-			return;
+	if (found_name) {
+		for (uint8_t i = 0; i < BLE_DEVICE_LEN; i++) {
+			if (!device_list[i].is_ok) {
+				device_t* dev = &device_list[i];
+				memset(&dev->name, 0x00, sizeof(dev->name));
+				memcpy(&dev->name, dev_name.p_data, dev_name.size);
+				dev->is_ok = true;
+				dev->is_dfu = false;
+				dev->rssi = p_scan_evt->params.filter_match.p_adv_report->rssi;
+				memcpy(&dev->peer_addr, peer_addr, sizeof(dev->peer_addr));
+				dev->conn_handle = BLE_CONN_HANDLE_INVALID;
+				device_counter++;
+				return;
+			}
 		}
 	}
 }
@@ -495,9 +525,12 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
 	break;
 
 	case NRF_BLE_SCAN_EVT_FILTER_MATCH: {
-		if (!find_device(p_scan_evt))
-			add_device(p_scan_evt);
-		else change_device(p_scan_evt);
+		if (p_scan_evt->params.filter_match.filter_match.name_filter_match) {
+			if (!find_device(p_scan_evt))
+				add_device(p_scan_evt);
+		}
+		else if (find_device(p_scan_evt)) 
+			change_device(p_scan_evt);
 	}
 	break;
 
@@ -516,9 +549,9 @@ static void scan_init(void)
 
 	memset(&init_scan, 0, sizeof(init_scan));
 
-	init_scan.connect_if_match = false;//true;
+	init_scan.connect_if_match = false;
 	init_scan.conn_cfg_tag     = APP_BLE_CONN_CFG_TAG;
-//	init_scan.p_scan_param = &m_scan_params;
+	init_scan.p_scan_param = &m_scan_params;
 //	init_scan.p_conn_param = &m_conn_params;
 
 	err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);
@@ -1099,14 +1132,11 @@ static void db_discovery_init(void)
 void second_f(void)
 {
 	if (!BLE_CON_STATE) {
-		for (uint8_t i = 0; i < BLE_DEVICE_LEN; i++)
-		{
-			if (get_device(i)->is_ok != 0)
-			{
+		for (uint8_t i = 0; i < BLE_DEVICE_LEN; i++) {
+			if (get_device(i)->is_ok) {
 				if (get_device(i)->timeout < TIMEOUT_RSSI_CLEAR)
 					get_device(i)->timeout++;
-				if (get_device(i)->timeout >= TIMEOUT_RSSI_CLEAR)
-				{
+				if (get_device(i)->timeout >= TIMEOUT_RSSI_CLEAR) {
 					memset(get_device(i), 0x00, sizeof(device_t));
 					if (device_counter > 0) device_counter--;
 				}
@@ -1325,6 +1355,7 @@ uint32_t div_up(uint32_t x, uint32_t y)
 }
 
 //--------------------------------------------------------------------------
+device_t* dev_ptr;
 void flag_handler(void)
 {
 	uint32_t ret_val = NRF_SUCCESS;
@@ -1381,15 +1412,15 @@ void flag_handler(void)
 		if (device_selected_idx != 0xFF) {
 			// проверка индекса выбранного устройства для подключения
 			if (device_selected_idx < BLE_DEVICE_LEN) {
-				device_t* dev = get_device(device_selected_idx);
+				dev_ptr = get_device(device_selected_idx);
 				// проверка выбранного устройства для подключения
-				if (dev != NULL && dev->is_ok) {
+				if (dev_ptr != NULL && dev_ptr->is_ok) {
 					// Stop scanning.
 //					nrf_ble_scan_stop();
-					ret_val = sd_ble_gap_connect(&dev->peer_addr, &m_scan.scan_params, &m_scan.conn_params, m_scan.conn_cfg_tag);
-					/*if (ret_val != NRF_SUCCESS) {
+					ret_val = sd_ble_gap_connect(&dev_ptr->peer_addr, &m_scan.scan_params, &m_scan.conn_params, m_scan.conn_cfg_tag);
+					if (ret_val != NRF_SUCCESS) {
 						NRF_LOG_ERROR("Connection Request Failed, reason %d", ret_val);
-					}*/
+					}
 				}
 			}
 		}
@@ -1404,10 +1435,10 @@ void flag_handler(void)
 		// если сброшен индекс подключенного устройства, отключиться
 		if (device_selected_idx == 0xFF) {
 			// проверка подключеного устройства
-			device_t* dev = get_device_connected();
-			if (dev != NULL && dev->is_ok) {
+			dev_ptr = get_device_connected();
+			if (dev_ptr != NULL && dev_ptr->is_ok) {
 				// отключиться от устройства бле
-				ret_val = sd_ble_gap_disconnect(dev->conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);	// отключиться от устройства
+				ret_val = sd_ble_gap_disconnect(dev_ptr->conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);	// отключиться от устройства
 				if (ret_val != NRF_ERROR_INVALID_STATE) {
 					APP_ERROR_CHECK(ret_val);	// проверка на ошибку
 				}

@@ -38,4 +38,5 @@
 .\_build\nrf_queue.o: ..\..\..\..\..\..\components\libraries\experimental_section_vars\nrf_section.h
 .\_build\nrf_queue.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_types.h
 .\_build\nrf_queue.o: ..\..\..\..\..\..\components\libraries\log\nrf_log.h
+.\_build\nrf_queue.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\nrf_queue.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h

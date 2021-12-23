@@ -1,10 +1,12 @@
+#ifndef UART_H
+#define UART_H
 
 #define UART_TX_FIFO_SIZE			256				/**< UART TX buffer size. */
 #define UART_RX_FIFO_SIZE			256				/**< UART RX buffer size. */
 
 #define UART_BUFF_SIZE				128
 
-#define UART_TX_TIMER_INTERVAL		200		// us
+#define UART_TX_TIMER_INTERVAL		300		// us
 
 #define UART_WAITING_ERROR			2000	// ms
 #define UART_REPAIR_ERROR			5000	// ms
@@ -87,3 +89,5 @@ void reset_buff(void);
 void uart_tx_buff_clear(void);
 
 void* calc_crc(uint8_t* data, uint8_t len);
+
+#endif

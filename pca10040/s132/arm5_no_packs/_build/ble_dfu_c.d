@@ -58,4 +58,5 @@
 .\_build\ble_dfu_c.o: ..\..\..\..\..\..\components\libraries\experimental_section_vars\nrf_section_iter.h
 .\_build\ble_dfu_c.o: ..\..\..\..\..\..\components\ble\common\ble_srv_common.h
 .\_build\ble_dfu_c.o: ..\..\..\..\..\..\components\libraries\log\nrf_log.h
+.\_build\ble_dfu_c.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\ble_dfu_c.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h

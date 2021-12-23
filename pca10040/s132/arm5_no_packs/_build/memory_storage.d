@@ -49,10 +49,16 @@
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\util\sdk_common.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\util\sdk_os.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\util\sdk_macros.h
+.\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_instance.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_types.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_ctrl.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_ctrl_internal.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_backend_interface.h
+.\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\memobj\nrf_memobj.h
+.\_build\memory_storage.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+.\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\balloc\nrf_balloc.h
+.\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\util\app_util_platform.h
+.\_build\memory_storage.o: ..\..\..\..\..\..\components\softdevice\s132\headers\nrf_nvic.h
 .\_build\memory_storage.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_default_backends.h

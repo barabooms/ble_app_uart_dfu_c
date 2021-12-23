@@ -1,4 +1,4 @@
-.\_build\nrfx_timer.o: G:\modules\nrfx\drivers\src\nrfx_timer.c
+.\_build\nrfx_timer.o: ..\..\..\..\..\..\modules\nrfx\drivers\src\nrfx_timer.c
 .\_build\nrfx_timer.o: ..\..\..\..\..\..\modules\nrfx\nrfx.h
 .\_build\nrfx_timer.o: ..\..\..\..\..\..\integration\nrfx\nrfx_config.h
 .\_build\nrfx_timer.o: ..\config\sdk_config.h
@@ -53,6 +53,7 @@
 .\_build\nrfx_timer.o: ..\..\..\..\..\..\components\libraries\util\sdk_os.h
 .\_build\nrfx_timer.o: ..\..\..\..\..\..\components\libraries\util\sdk_macros.h
 .\_build\nrfx_timer.o: ..\..\..\..\..\..\components\libraries\experimental_section_vars\nrf_section.h
+.\_build\nrfx_timer.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\nrfx_timer.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h
 .\_build\nrfx_timer.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_instance.h
 .\_build\nrfx_timer.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_types.h

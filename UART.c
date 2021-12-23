@@ -283,7 +283,7 @@ void rx_message(void)
 					app_uart_flush();
 					// проверка crc
 					if (*(uint8_t*)calc_crc((uint8_t*)GetUART_RX(), UART_BUFF_SIZE) != 0) {
-						set_error(UART_ERROR_E3);								// если crc неправильное
+//						set_error(UART_ERROR_E3);								// если crc неправильное
 						UART_RX_F = 0;
 						return;
 					}
@@ -297,7 +297,7 @@ void rx_message(void)
 				countRxBuf = 0;
 				countStartRx = 0;
 				statRxDTbits.Full = 0;
-				set_error(UART_ERROR_E1);
+//				set_error(UART_ERROR_E1);
 			}
 		}
 	}
@@ -313,7 +313,7 @@ void rx_message(void)
 				countRxBuf = 0;
 				countStartRx = 0;
 				statRxDTbits.Full = 0;
-				set_error(UART_ERROR_E1);
+//				set_error(UART_ERROR_E1);
 			}
 		}
 		else {	// продолжение приема строки-маркера
@@ -327,7 +327,7 @@ void rx_message(void)
 				countRxBuf = 0;
 				countStartRx = 0;
 				statRxDTbits.Full = 0;
-				set_error(UART_ERROR_E2);
+//				set_error(UART_ERROR_E2);
 			}
 		}
 	}

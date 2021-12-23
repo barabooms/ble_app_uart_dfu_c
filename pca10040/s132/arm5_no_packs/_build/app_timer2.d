@@ -56,6 +56,7 @@
 .\_build\app_timer2.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 .\_build\app_timer2.o: ..\..\..\..\..\..\components\libraries\util\sdk_os.h
 .\_build\app_timer2.o: ..\..\..\..\..\..\components\libraries\util\sdk_macros.h
+.\_build\app_timer2.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\app_timer2.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h
 .\_build\app_timer2.o: ..\..\..\..\..\..\components\libraries\timer\drv_rtc.h
 .\_build\app_timer2.o: ..\..\..\..\..\..\modules\nrfx\hal/nrf_rtc.h

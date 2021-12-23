@@ -6,10 +6,10 @@
 
 #define UART_BUFF_SIZE				128
 
-#define UART_TX_TIMER_INTERVAL		200		// us
+#define UART_TX_TIMER_INTERVAL		300		// us
 
 #define UART_WAITING_ERROR			2000	// ms
-#define UART_REPAIR_ERROR			5000	// ms
+#define UART_REPAIR_ERROR			30000	// ms
 
 /*
 Описание ошибок от Dongle										DEC	HEX

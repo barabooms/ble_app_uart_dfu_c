@@ -1,4 +1,4 @@
-.\_build\nrf_fstorage_sd.o: G:\components\libraries\fstorage\nrf_fstorage_sd.c
+.\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\libraries\fstorage\nrf_fstorage_sd.c
 .\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\libraries\util\sdk_common.h
 .\_build\nrf_fstorage_sd.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\_build\nrf_fstorage_sd.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
@@ -26,8 +26,8 @@
 .\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\softdevice\s132\headers\nrf_svc.h
 .\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\libraries\util\sdk_macros.h
 .\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\libraries\util\nrf_assert.h
-.\_build\nrf_fstorage_sd.o: G:\components\libraries\fstorage\nrf_fstorage_sd.h
-.\_build\nrf_fstorage_sd.o: G:\components\libraries\fstorage\nrf_fstorage.h
+.\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\libraries\fstorage\nrf_fstorage_sd.h
+.\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\libraries\fstorage\nrf_fstorage.h
 .\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\libraries\experimental_section_vars\nrf_section.h
 .\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\softdevice\s132\headers\nrf_soc.h
 .\_build\nrf_fstorage_sd.o: ..\..\..\..\..\..\components\softdevice\s132\headers\nrf_error_soc.h

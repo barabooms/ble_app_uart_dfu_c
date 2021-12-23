@@ -54,4 +54,5 @@
 .\_build\nrf_ble_gq.o: ..\..\..\..\..\..\components\softdevice\s132\headers\ble_gatts.h
 .\_build\nrf_ble_gq.o: ..\..\..\..\..\..\components\libraries\experimental_section_vars\nrf_section_iter.h
 .\_build\nrf_ble_gq.o: ..\..\..\..\..\..\components\libraries\log\nrf_log.h
+.\_build\nrf_ble_gq.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\nrf_ble_gq.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h

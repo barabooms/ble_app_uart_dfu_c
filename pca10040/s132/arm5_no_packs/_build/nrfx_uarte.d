@@ -1,4 +1,4 @@
-.\_build\nrfx_uarte.o: G:\modules\nrfx\drivers\src\nrfx_uarte.c
+.\_build\nrfx_uarte.o: ..\..\..\..\..\..\modules\nrfx\drivers\src\nrfx_uarte.c
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\modules\nrfx\nrfx.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\integration\nrfx\nrfx_config.h
 .\_build\nrfx_uarte.o: ..\config\sdk_config.h
@@ -46,7 +46,7 @@
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\modules\nrfx\drivers/nrfx_errors.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\modules\nrfx\drivers\include\nrfx_uarte.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\modules\nrfx\hal/nrf_uarte.h
-.\_build\nrfx_uarte.o: G:\modules\nrfx\drivers\src\prs/nrfx_prs.h
+.\_build\nrfx_uarte.o: ..\..\..\..\..\..\modules\nrfx\drivers\src\prs/nrfx_prs.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\modules\nrfx\hal/nrf_gpio.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\integration\nrfx\nrfx_log.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\components\libraries\log\nrf_log.h
@@ -55,6 +55,7 @@
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\components\libraries\util\sdk_os.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\components\libraries\util\sdk_macros.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\components\libraries\experimental_section_vars\nrf_section.h
+.\_build\nrfx_uarte.o: ..\..\..\..\..\..\components\libraries\strerror\nrf_strerror.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\components\libraries\log\src\nrf_log_internal.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_instance.h
 .\_build\nrfx_uarte.o: ..\..\..\..\..\..\components\libraries\log\nrf_log_types.h

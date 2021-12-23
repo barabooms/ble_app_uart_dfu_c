@@ -26,7 +26,7 @@
 
 #define DONGLE_DFU_START_BYTE				0x8F
 
-#define BLE_DEVICE_LEN							10
+#define BLE_DEVICE_LEN						10
 
 #define UART_ERROR_LEN						4
 

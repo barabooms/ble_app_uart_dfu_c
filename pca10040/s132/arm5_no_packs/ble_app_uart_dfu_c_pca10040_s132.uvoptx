@@ -101,8 +101,6 @@
         <sRunDeb>0</sRunDeb>
         <sLrtime>0</sLrtime>
         <bEvRecOn>1</bEvRecOn>
-        <bSchkAxf>0</bSchkAxf>
-        <bTchkAxf>0</bTchkAxf>
         <nTsel>3</nTsel>
         <sDll></sDll>
         <sDllPa></sDllPa>
@@ -194,6 +192,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>dfu_process_percent,0x0A</ItemText>
         </Ww>
+        <Ww>
+          <count>9</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>m_scan</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>
@@ -274,7 +277,6 @@
       <pMultCmdsp></pMultCmdsp>
       <DebugDescription>
         <Enable>1</Enable>
-        <EnableFlashSeq>0</EnableFlashSeq>
         <EnableLog>0</EnableLog>
         <Protocol>2</Protocol>
         <DbgClock>10000000</DbgClock>
@@ -362,8 +364,6 @@
         <sRunDeb>0</sRunDeb>
         <sLrtime>0</sLrtime>
         <bEvRecOn>1</bEvRecOn>
-        <bSchkAxf>0</bSchkAxf>
-        <bTchkAxf>0</bTchkAxf>
         <nTsel>7</nTsel>
         <sDll></sDll>
         <sDllPa></sDllPa>
@@ -760,7 +760,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>G:\modules\nrfx\drivers\src\nrfx_timer.c</PathWithFileName>
+      <PathWithFileName>..\..\..\..\..\..\modules\nrfx\drivers\src\nrfx_timer.c</PathWithFileName>
       <FilenameWithoutPath>nrfx_timer.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -772,7 +772,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>G:\modules\nrfx\drivers\src\nrfx_uarte.c</PathWithFileName>
+      <PathWithFileName>..\..\..\..\..\..\modules\nrfx\drivers\src\nrfx_uarte.c</PathWithFileName>
       <FilenameWithoutPath>nrfx_uarte.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -1080,7 +1080,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>G:\components\libraries\fstorage\nrf_fstorage_sd.c</PathWithFileName>
+      <PathWithFileName>..\..\..\..\..\..\components\libraries\fstorage\nrf_fstorage_sd.c</PathWithFileName>
       <FilenameWithoutPath>nrf_fstorage_sd.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -1092,7 +1092,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>G:\components\libraries\fstorage\nrf_fstorage.c</PathWithFileName>
+      <PathWithFileName>..\..\..\..\..\..\components\libraries\fstorage\nrf_fstorage.c</PathWithFileName>
       <FilenameWithoutPath>nrf_fstorage.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -1101,7 +1101,7 @@
 
   <Group>
     <GroupName>nRF_Log</GroupName>
-    <tvExp>1</tvExp>
+    <tvExp>0</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
