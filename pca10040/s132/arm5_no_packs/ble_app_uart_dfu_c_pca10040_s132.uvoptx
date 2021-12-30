@@ -118,6 +118,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
+          <Name>јх&amp;</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -196,6 +197,16 @@
           <count>9</count>
           <WinNumber>1</WinNumber>
           <ItemText>m_scan</ItemText>
+        </Ww>
+        <Ww>
+          <count>10</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>uart_packets,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>11</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>_flags</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>

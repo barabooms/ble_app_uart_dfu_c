@@ -519,7 +519,7 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
 	break;
 
 	case NRF_BLE_SCAN_EVT_SCAN_TIMEOUT: {
-		NRF_LOG_INFO("Scan timed out.");
+//		NRF_LOG_INFO("Scan timed out.");
 		scan_start();
 	}
 	break;
@@ -551,7 +551,7 @@ static void scan_init(void)
 
 	init_scan.connect_if_match = false;
 	init_scan.conn_cfg_tag     = APP_BLE_CONN_CFG_TAG;
-	init_scan.p_scan_param = &m_scan_params;
+//	init_scan.p_scan_param = &m_scan_params;
 //	init_scan.p_conn_param = &m_conn_params;
 
 	err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);
@@ -1442,10 +1442,6 @@ void flag_handler(void)
 				if (ret_val != NRF_ERROR_INVALID_STATE) {
 					APP_ERROR_CHECK(ret_val);	// проверка на ошибку
 				}
-				if (RESET_LIST_F) {
-					RESET_LIST_F = 0;
-					clear_device_list();
-				}
 			}
 		}
 		// если индекс подключенного устройства в порядке
@@ -1623,6 +1619,11 @@ void flag_handler(void)
 				ble_packets.tx_counter++;
 			}
 		}
+	}
+	if (RESET_LIST_F) {
+		RESET_LIST_F = 0;
+		clear_device_list();
+		scan_start();
 	}
 }
 
